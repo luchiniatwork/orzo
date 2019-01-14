@@ -45,7 +45,7 @@
                           #"(\D*)(?:(\d+)\.?)?(?:(\d+)\.?)?(\d+)?(.*)"
                           replace-str)))
 
-;; Utilities for sprint-based
+;; Utilities for calendar-based sprint numbering
 
 (defn ^:private sprint-parse-line
   [line]
@@ -78,14 +78,9 @@
       
       :always (assoc indicator sprint-number))))
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Seed functions
-;;
-;; may accept parameters for setup
-;; all return a "seeding" version
-;; a "seeding" is a starting point
-;; (i.e. current version, last known
-;; version, etc)
+;; Info functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn read-file
@@ -98,28 +93,11 @@
        (second matches)
        (throw (ex-info (str "regex " (.toString regex) " didn't yield results") {}))))))
 
-(defn git-last-tag
-  ([]
-   (git-last-tag nil))
-  ([match-pattern]
-   (let [base-cmd ["git" "describe" "--tags" "--abbrev=0"]
-         cmd (if match-pattern (conj base-cmd (str "--match=" match-pattern)) base-cmd)
-         {:keys [exit err out]} (apply shell/sh cmd)]
-     (when (not= 0 exit)
-       (throw (ex-info "git-last-tag failed" {:reason err
-                                              :cmd cmd})))
-     out)))
-
 (defn unstage
   []
   (let [version (slurp ".orzo-stage")]
     (io/delete-file ".orzo-stage")
     version))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Meta functions
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn instant
   []
@@ -128,27 +106,6 @@
 (defn env
   [var-name]
   (System/getenv var-name))
-
-(defn git-sha
-  ([]
-   (git-sha 7))
-  ([length]
-   (let [{:keys [exit err out]} (shell/sh "git" "rev-parse" (str "--short=" length) "HEAD")]
-     (when (not= 0 exit)
-       (throw (ex-info "git-sha failed" {:reason err})))
-     (string/trim out))))
-
-(defn git-count-since-last-tag
-  ([]
-   (git-count-since-last-tag nil))
-  ([match-pattern]
-   (let [last-tag (git-last-tag match-pattern)
-         sha (git-sha)
-         cmd ["git" "rev-list" "--count" (str last-tag ".." sha)]
-         {:keys [exit err out]} (shell/sh cmd)]
-     (when (not= 0 exit)
-       (throw (ex-info "git-count-since-last-tag failed" {:reason err})))
-     out)))
 
 (defn calendar-sprint-number
   [{:keys [sprint-size sprint-file-path]
@@ -165,11 +122,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Transformer functions
-;;
-;; first parameter is always the transformed
-;; version. The other parameters configure
-;; this bumper
-;; returns bumped up version
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn append
@@ -217,15 +169,6 @@
 ;; Validation functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn assert-git-clean?
-  [version]
-  (let [{:keys [exit err out]} (shell/sh "git" "status" "-s")]
-    (when (not= 0 exit)
-      (throw (ex-info "assert-git-clean? failed" {:reason err})))
-    (when (not (empty? out))
-      (throw (ex-info "git repo is not clean" {:reason out})))
-    version))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Persistence functions
@@ -236,60 +179,18 @@
    (spit (io/file path) version)
    version)
   ([version path template-path]
-   (let [template (-> template-path io/file slurp)]
+   (save-file version path template-path "VERSION"))
+  ([version path template-path var-name]
+   (let [regex (str "${" var-name "}")
+         template (-> template-path io/file slurp)]
      (spit (io/file path)
-           (string/replace template #"\$\{VERSION\}" version))
+           (string/replace template regex version))
      version)))
 
-(defn git-tag
-  [version]
-  (let [{:keys [exit err]} (shell/sh "git" "tag" version)]
-    (when (not= 0 exit)
-      (throw (ex-info "git-tag failed" {:reason err})))
-    version))
-
-(defn git-push-tag
-  ([version]
-   (git-push-tag version "origin"))
-  ([version remote]
-   (let [{:keys [exit err]} (shell/sh "git" "push" remote version)]
-     (when (not= 0 exit)
-       (throw (ex-info "git-push-tag failed" {:reason err})))
-     version)
-   version))
+(let [r (str "$" "p")]
+  (string/replace "person $p is here" r "tiago"))
 
 (defn stage
   [version]
   (spit ".orzo-stage" version)
   version)
-
-
-
-(comment
-  (-> (read-file (io/resource "base-version.txt"))
-      (extract-base-semver)
-      (append "-SNAPSHOT")
-      (append (str "-g" (git-sha)))
-      (prepend "v")
-      (stage))
-
-
-  (-> (unstage)
-      #_(git-tag)
-      #_(git-push-tag)
-      (save-file "version.txt"))
-
-  (read-file (io/resource "crazy-file.json")
-             #"(?s)^.*\"version\"\s*:\s*\"([^\"]*).*$")
-
-
-  (sprint-calendar-based "3.4.5" {:indicator :minor
-                                  :sprint-file-path (io/resource "sprint-file")})
-
-
-  (calendar-sprint-number {:sprint-file-path (io/resource "sprint-file")})
-
-  (get-sprint-date-pair (io/resource "sprint-file"))
-  
-  
-  )
