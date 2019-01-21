@@ -1,4 +1,4 @@
-(ns orzo.spring
+(ns orzo.sprint
   (:require [clojure.java.io :as io]
             [clojure.java.shell :as shell]
             [clojure.string :as string])
@@ -6,21 +6,20 @@
                       LocalDate)
            (java.time.temporal ChronoUnit)))
 
-
-(defn ^:private sprint-parse-line
+(defn ^:private ^:no-doc sprint-parse-line
   [line]
   (let [split (string/split line #" ")]
     {:sprint (Integer/parseInt (first split))
      :end-date (LocalDate/parse (last split))}))
 
-(defn ^:private get-sprint-date-pair
+(defn ^:private ^:no-doc get-sprint-date-pair
   [path]
   (let [lines (some-> path io/file slurp string/split-lines)
         last-sprint (sprint-parse-line (last lines))]
     {:sprint (:sprint last-sprint)
      :end-date (:end-date last-sprint)}))
 
-(defn ^:private build-sprint-calendar-semver
+(defn ^:private ^:no-doc build-sprint-calendar-semver
   [orig-semver indicator sprint-number]
   (let [at-indicator-value (get orig-semver indicator)
         smaller-indicator' (smaller-indicator indicator)
@@ -43,6 +42,21 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn calendar-sprint-number
+  "Returns a number based on the sprint of the project. Sprints usually
+  emcompass several weeks.
+
+  It receives a map with the following keys:
+
+  - `:sprint-size`: (default 2) how many weeks each sprint usually has
+  - `:sprint-file-path`: a path to a configuration file that's used as
+  foundation for the calculations
+
+  The file specified follows the convention where each line is
+  `<SPRINT_NUM> <YYYY-MM-DD>` in a sequential manner where
+  `<SPRINT_NUM>` represents the sprint number and `YYYY-MM-DD`
+  represents the last day of the sprint.
+
+  At least one line is mandatory to set the first sprint."
   [{:keys [sprint-size sprint-file-path]
     :or {sprint-size 2}}]
   (if-not sprint-file-path

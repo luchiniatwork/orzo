@@ -7,6 +7,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn last-tag
+  "Returns the last tag from your repo. Many projects use tags to represent versions.
+
+  It can also receive an optional git match pattern to be passed to
+  git when looking for the tag."
   ([]
    (last-tag nil))
   ([match-pattern]
@@ -19,6 +23,8 @@
      out)))
 
 (defn sha
+  "Returns the current commit sha. By default it will return just the 7
+  first characters. You can specify more if you need to."
   ([]
    (sha 7))
   ([length]
@@ -28,6 +34,11 @@
      (string/trim out))))
 
 (defn count-since-last-tag
+  "Returns the numeric cound of commits since the last tag. Some
+  projects use that as a way to version.
+
+  It can also receive an optional git match pattern to be passed to
+  git when looking for the tag."
   ([]
    (count-since-last-tag nil))
   ([match-pattern]
@@ -50,6 +61,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn assert-clean?
+  "Throws if the repo is not clean."
   [version]
   (let [{:keys [exit err out]} (shell/sh "git" "status" "-s")]
     (when (not= 0 exit)
@@ -64,6 +76,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn tag
+  "Creates a local tag with the incoming version."
   [version]
   (let [{:keys [exit err]} (shell/sh "git" "tag" version)]
     (when (not= 0 exit)
@@ -71,11 +84,12 @@
     version))
 
 (defn push-tag
+  "Pushes whatever has been tagged or added to `origin` by default
+  unless another remote has been specified."
   ([version]
    (push-tag version "origin"))
   ([version remote]
    (let [{:keys [exit err]} (shell/sh "git" "push" remote version)]
      (when (not= 0 exit)
        (throw (ex-info "push-tag failed" {:reason err})))
-     version)
-   version))
+     version)))
