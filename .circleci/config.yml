@@ -13,6 +13,10 @@ jobs:
     steps:
       - checkout
 
+      - add_ssh_keys:
+          fingerprints:
+            - "67:aa:9d:07:87:33:95:47:89:20:6b:0f:ec:2d:e3:7a"
+
       - restore_cache:
           keys:
             - v1-dependencies-{{ checksum "deps.edn"}}
@@ -26,7 +30,7 @@ jobs:
           command: clojure -A:test
 
       - run:
-          name: Bake version in, tag, and push
+          name: Tag and push
           command: clojure -A:dev -m tag-and-push-version
 
       - save_cache:
