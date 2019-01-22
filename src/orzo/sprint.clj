@@ -64,7 +64,9 @@
   `<SPRINT_NUM>` represents the sprint number and `YYYY-MM-DD`
   represents the last day of the sprint.
 
-  At least one line is mandatory to set the first sprint."
+  At least one line is mandatory to set the first sprint.
+
+  Thanks to Andre Carvalho for the inspiration behind this idea."
   [{:keys [sprint-size sprint-file-path]
     :or {sprint-size 2}}]
   (if-not sprint-file-path
