@@ -1,7 +1,7 @@
 # Orzo
 
 [![CircleCI](https://circleci.com/gh/luchiniatwork/orzo.svg?style=shield&circle-token=c0bc81c8cc529f31a28565b9e4a246769ca8d623)](https://circleci.com/gh/luchiniatwork/orzo)
-[![Clojars Project](http://clojars.org/v/luchiniatwork/orzo.svg)](http://clojars.org/luchiniatwork/orzo)
+[![Clojars Project](https://img.shields.io/clojars/v/luchiniatwork/orzo.svg)](http://clojars.org/luchiniatwork/orzo)
 [![cljdoc badge](https://cljdoc.org/badge/luchiniatwork/orzo)](https://cljdoc.org/d/luchiniatwork/orzo/CURRENT)
 ![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Beta Project](https://img.shields.io/badge/project%20status-beta-brightgreen.svg)

@@ -19,6 +19,14 @@
     {:sprint (:sprint last-sprint)
      :end-date (:end-date last-sprint)}))
 
+(defn ^:private ^:no-doc smaller-indicator
+  [from-indicator]
+  (case from-indicator
+    :major :minor
+    :minor :patch
+    :patch nil
+    nil))
+
 (defn ^:private ^:no-doc build-sprint-calendar-semver
   [orig-semver indicator sprint-number]
   (let [at-indicator-value (get orig-semver indicator)
