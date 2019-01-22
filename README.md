@@ -25,7 +25,7 @@ alias as shown below):
 ``` clojure
 {:aliases
  {:orzo {:extra-deps
-         {:orzo {:mvn/version "0.1.3"}}}}}
+         {:orzo {:mvn/version "0.1.5"}}}}}
 ```
 
 `orzo` has a series of composable functions specifically designed to
