@@ -6,4 +6,10 @@
  :aliases
  {:dev
   {:extra-paths ["dev"]
-   :extra-deps {}}}}
+   :extra-deps {}}
+
+  :test
+  {:extra-paths ["test"]
+   :extra-deps
+   {lambdaisland/kaocha {:mvn/version "0.0-266"}}
+   :main-opts ["-m" "kaocha.runner"]}}}

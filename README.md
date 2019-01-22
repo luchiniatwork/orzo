@@ -64,12 +64,16 @@ called `gen_version.clj` on your classpath:
   (:require [orzo.core :as orzo]))
 
 (defn -main [& args]
-  (println (-> (orzo/read-file "resources/base_version.txt")
-               (orzo/extract-base-semver)
-               (orzo/set-semver {:patch (orzo/env "BUILD_NUM")})
-               (orzo/save-file "resources/version.txt")
-               (orzo/stage)))
-  (System/exit 0))
+  (try
+    (println (-> (orzo/read-file "resources/base_version.txt")
+                 (orzo/extract-base-semver)
+                 (orzo/set-semver {:patch (orzo/env "BUILD_NUM")})
+                 (orzo/save-file "resources/version.txt")
+                 (orzo/stage)))
+    (System/exit 0)
+    (catch Exception e
+      (println e)
+      (System/exit 1))))
 ```
 
 `orzo` works with composable functions that can be easily piped with a
@@ -121,11 +125,15 @@ Staging the version is important for the next script. We will call it
             [orzo.git :as git]))
 
 (defn -main [& args]
-  (println (-> (orzo/unstage)
-               (orzo/prepend "v")
-               (git/tag)
-               (git/push-tag)))
-  (System/exit 0))
+  (try
+    (println (-> (orzo/unstage)
+                 (orzo/prepend "v")
+                 (git/tag)
+                 (git/push-tag)))
+    (System/exit 0)
+    (catch Exception e
+      (println e)
+      (System/exit 1))))
 ```
 
 This script is recovering the version that was staged by the previous

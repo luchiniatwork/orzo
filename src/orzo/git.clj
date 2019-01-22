@@ -10,7 +10,9 @@
   "Returns the last tag from your repo. Many projects use tags to represent versions.
 
   It can also receive an optional git match pattern to be passed to
-  git when looking for the tag."
+  git when looking for the tag.
+
+  If a tag is not found, an exception is thrown."
   ([]
    (last-tag nil))
   ([match-pattern]
@@ -38,7 +40,9 @@
   projects use that as a way to version.
 
   It can also receive an optional git match pattern to be passed to
-  git when looking for the tag."
+  git when looking for the tag.
+
+  If a tag is not found, an exception is thrown."
   ([]
    (count-since-last-tag nil))
   ([match-pattern]

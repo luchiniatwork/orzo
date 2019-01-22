@@ -98,7 +98,8 @@
   (str value version))
 
 (defn extract-base-semver
-  "Parses the incoming version as a semver so that it can be manipulated further as such."
+  "Parses the incoming version as a pure semver (just a simple string
+  of `<major>.<minor>.<patch>`)."
   [version]
   (let [{:keys [major minor patch] :as semver} (parse-semver version)]
     (str (or major 0) "."
@@ -117,22 +118,29 @@
   indicator ripple through the lower order ones (i.e. change a `major`
   up would set `minor` and `patch` to `0` each)
 
-  If a certain key is not passed, then that indicator is untouched."
+  If a certain key is not passed, then that indicator is untouched.
+
+  If the incoming version is not parsed as a semver,
+  `extract-base-semver` will be called on it."
   [version {:keys [major minor patch ripple?] :as opts}]
-  (if-not ripple?
-    (simple-semver-set version {:major major :minor minor :patch patch})
-    (let [semver (parse-semver version)
-          new-semver (cond-> {}
-                       (not= major (:major semver)) (assoc :major major
-                                                           :minor 0
-                                                           :patch 0)
-                       (not= minor (:minor semver)) (assoc :major major
-                                                           :minor minor
-                                                           :patch 0)
-                       (not= patch (:patch semver)) (assoc :major major
-                                                           :minor minor
-                                                           :patch patch))]
-      (simple-semver-set version new-semver))))
+  (let [semver (if (map? version) version (parse-semver version))]
+    (if-not ripple?
+      (simple-semver-set version
+                         (merge semver (cond-> {}
+                                         major (assoc :major major)
+                                         minor (assoc :minor minor)
+                                         patch (assoc :patch patch))))
+      (let [new-semver (cond-> {}
+                         (not= major (:major semver)) (assoc :major major
+                                                             :minor 0
+                                                             :patch 0)
+                         (not= minor (:minor semver)) (assoc :major major
+                                                             :minor minor
+                                                             :patch 0)
+                         (not= patch (:patch semver)) (assoc :major major
+                                                             :minor minor
+                                                             :patch patch))]
+        (simple-semver-set version new-semver)))))
 
 (defn bump-semver
   "Bumps the specific indicator of an incoming semver. Options for
