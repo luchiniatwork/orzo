@@ -130,16 +130,14 @@
                                          major (assoc :major major)
                                          minor (assoc :minor minor)
                                          patch (assoc :patch patch))))
-      (let [new-semver (cond-> {}
-                         (not= major (:major semver)) (assoc :major major
-                                                             :minor 0
-                                                             :patch 0)
-                         (not= minor (:minor semver)) (assoc :major major
-                                                             :minor minor
-                                                             :patch 0)
-                         (not= patch (:patch semver)) (assoc :major major
-                                                             :minor minor
-                                                             :patch patch))]
+      (let [new-semver (merge semver
+                              (cond-> {}
+                                (and major (not= major (:major semver))) (assoc :major major
+                                                                                :minor 0
+                                                                                :patch 0)
+                                (and minor (not= minor (:minor semver))) (assoc :minor minor
+                                                                                :patch 0)
+                                (and patch (not= patch (:patch semver))) (assoc :patch patch)))]
         (simple-semver-set version new-semver)))))
 
 (defn bump-semver
