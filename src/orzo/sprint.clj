@@ -73,8 +73,8 @@
     (throw (ex-info "sprint-file-path must be provided" {})))
   (let [{:keys [sprint end-date]} (get-sprint-date-pair sprint-file-path)
         now (LocalDate/now)
-        weeks (-> ChronoUnit/WEEKS (.between end-date now))]
+        days (-> ChronoUnit/DAYS (.between end-date now))]
     (if (.isAfter now end-date)
-      (+ (int (Math/ceil (/ weeks sprint-size)))
+      (+ (max (int (Math/ceil (/ (/ days 7) sprint-size))) 1)
          sprint)
       sprint)))
