@@ -1,10 +1,11 @@
 (ns orzo.core
   (:require [clojure.java.io :as io]
             [clojure.java.shell :as shell]
+            [clojure.string :as s]
             [clojure.string :as string])
   (:import (java.time Instant
                       LocalDate)
-           (java.time.temporal ChronoUnit)))
+           (java.time.temporal WeekFields)))
 
 ;; Utilities
 
@@ -82,6 +83,59 @@
   "Returns the value of the environment variable."
   [var-name]
   (System/getenv var-name))
+
+(def ^:private calver-patterns
+  {#"YYYY" #(format "%04d" (.getYear %))
+   #"YY"   #(-> (.getYear %)
+                str (subs 2 4)
+                Integer/parseInt
+                str)
+   #"0Y"   #(format "%02d" (-> % .getYear
+                               str (subs 2 4)
+                               Integer/parseInt))
+   #"MM"   #(->> % .getMonthValue str)
+   #"0M"   #(->> % .getMonthValue (format "%02d"))
+   #"DD"   #(->> % .getDayOfMonth str)
+   #"0D"   #(->> % .getDayOfMonth (format "%02d"))
+   #"WW"   #(str (.get % (.weekOfWeekBasedYear WeekFields/ISO)))
+   #"0W"   #(format "%02d" (.get % (.weekOfWeekBasedYear WeekFields/ISO)))})
+
+(def ^:private default-calver "YYYY.0M.0D")
+
+(defn calver
+  "Returns a calver (https://calver.org) based on `LocalDate` and
+  following the format specified in `format-str`:
+
+  - YYYY - Full year - 2006, 2016, 2106
+  - YY - Short year - 6, 16, 106
+  - 0Y - Zero-padded year - 06, 16, 106
+  - MM - Short month - 1, 2 ... 11, 12
+  - 0M - Zero-padded month - 01, 02 ... 11, 12
+  - WW - Short week (since start of year) - 1, 2, 33, 52
+  - 0W - Zero-padded week - 01, 02, 33, 52
+  - DD - Short day - 1, 2 ... 30, 31
+  - 0D - Zero-padded day - 01, 02 ... 30, 31
+
+  Uses the ISO-8601 definition, where a week starts on Monday and the
+  first week has a minimum of 4 days.
+
+  The default format string is `YYYY.0M.0D`.
+
+  Calling this function without args uses now LocalDate and the
+  default format.
+
+  Calling this function with one arg the arg can be either a LocalDate
+  object or a string format."
+  ([]
+   (calver default-calver))
+  ([one-arg]
+   (if (= LocalDate (type one-arg))
+     (calver one-arg default-calver)
+     (calver (LocalDate/now) one-arg)))
+  ([date format-str]
+   (reduce (fn [a [pattern xfn]]
+             (s/replace a pattern (xfn date)))
+           format-str calver-patterns)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Transformer functions
