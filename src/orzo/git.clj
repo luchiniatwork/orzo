@@ -3,6 +3,23 @@
             [clojure.string :as string]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Validation functions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn assert-clean?
+  "Throws if the repo is not clean."
+  [version]
+  (let [{:keys [exit err out]} (shell/sh "git" "status" "-s")]
+    (when (not= 0 exit)
+      (throw (ex-info "assert-clean? failed" {:anomaly/category :cmd-failure
+                                              :reason err})))
+    (when (not (empty? out))
+      (throw (ex-info "git repo is not clean" {:anomaly/category :repo-not-clean
+                                               :reason out})))
+    version))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Info functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -54,25 +71,19 @@
        (throw (ex-info "count-since-last-tag failed" {:reason err})))
      out)))
 
+(defn unclean-status
+  ([]
+   (unclean-status "unclean"))
+  ([micro-str]
+   (try
+     (assert-clean?)
+     ""
+     (catch Exception _
+       micro-str))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Transformer functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Validation functions
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn assert-clean?
-  "Throws if the repo is not clean."
-  [version]
-  (let [{:keys [exit err out]} (shell/sh "git" "status" "-s")]
-    (when (not= 0 exit)
-      (throw (ex-info "assert-clean? failed" {:reason err})))
-    (when (not (empty? out))
-      (throw (ex-info "git repo is not clean" {:reason out})))
-    version))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
