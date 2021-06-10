@@ -76,7 +76,7 @@
    (unclean-status "unclean"))
   ([micro-str]
    (try
-     (assert-clean?)
+     (assert-clean? nil)
      ""
      (catch Exception _
        micro-str))))
