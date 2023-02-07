@@ -96,7 +96,7 @@
   ([version]
    (commit version (str "chore: bump to version " version)))
   ([version msg]
-   (let [{:keys [exit err]} (shell/sh "git" "commit" "-a" "-c" msg)]
+   (let [{:keys [exit err]} (shell/sh "git" "commit" "-a" "-m" msg)]
      (when (not= 0 exit)
        (throw (ex-info "commit failed" {:reason err})))
      version)))
