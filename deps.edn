@@ -8,8 +8,13 @@
   {:extra-paths ["dev"]
    :extra-deps {}}
 
-  :test
-  {:extra-paths ["test"]
-   :extra-deps
-   {lambdaisland/kaocha {:mvn/version "1.0.861"}}
-   :main-opts ["-m" "kaocha.runner"]}}}
+  :test {:extra-paths ["test"]
+         :extra-deps
+         {lambdaisland/kaocha                           {:mvn/version "1.60.977"}}
+         :exec-fn kaocha.runner/exec-fn
+         :exec-args {}}
+
+  ;; To be used with -X:test:watch
+  :watch {:exec-args {:watch? true
+                      :randomize? false
+	              :fail-fast? true}}}}

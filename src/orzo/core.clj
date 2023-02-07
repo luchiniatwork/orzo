@@ -7,6 +7,8 @@
                       LocalDate)
            (java.time.temporal WeekFields)))
 
+(defn ^:dynamic *now-provider* [] (LocalDate/now))
+
 ;; Utilities
 
 (defn ^:private ^:no-doc parse-number
@@ -85,26 +87,101 @@
   (System/getenv var-name))
 
 (def ^:private calver-patterns
-  {#"YYYY" #(format "%04d" (.getYear %))
-   #"YY"   #(-> (.getYear %)
-                str (subs 2 4)
-                Integer/parseInt
-                str)
-   #"0Y"   #(format "%02d" (-> % .getYear
+  [[#"YYYY" (fn [_ intent] (format "%04d" (.getYear intent)))]
+   [#"YY"   (fn [_ intent] (-> (.getYear intent)
                                str (subs 2 4)
-                               Integer/parseInt))
-   #"MM"   #(->> % .getMonthValue str)
-   #"0M"   #(->> % .getMonthValue (format "%02d"))
-   #"DD"   #(->> % .getDayOfMonth str)
-   #"0D"   #(->> % .getDayOfMonth (format "%02d"))
-   #"WW"   #(str (.get % (.weekOfWeekBasedYear WeekFields/ISO)))
-   #"0W"   #(format "%02d" (.get % (.weekOfWeekBasedYear WeekFields/ISO)))})
+                               Integer/parseInt
+                               str))]
+   [#"0Y"   (fn [_ intent] (format "%02d" (-> intent .getYear
+                                              str (subs 2 4)
+                                              Integer/parseInt)))]
+   [#"MM"   (fn [_ intent] (->> intent .getMonthValue str))]
+   [#"0M"   (fn [_ intent] (->> intent .getMonthValue (format "%02d")))]
+   [#"DD"   (fn [_ intent] (->> intent .getDayOfMonth str))]
+   [#"0D"   (fn [_ intent] (->> intent .getDayOfMonth (format "%02d")))]
+   [#"WW"   (fn [_ intent] (str (.get intent (.weekOfWeekBasedYear WeekFields/ISO))))]
+   [#"0W"   (fn [_ intent] (format "%02d" (.get intent (.weekOfWeekBasedYear WeekFields/ISO))))]
+   [#"CC"   (fn [{:keys [date components]} intent]
+              (let [{:keys [year month day week counter]} components]
+                (if (and (or (nil? year)
+                             (= year (.getYear intent)))
+                         (or (nil? month)
+                             (= month (.getMonthValue intent)))
+                         (or (nil? week)
+                             (= week (.get intent (.weekOfWeekBasedYear WeekFields/ISO))))
+                         (or (nil? day)
+                             (= day (.getDayOfMonth intent))))
+                  (if (nil? counter)
+                    "0"
+                    (str (inc counter)))
+                  "0")))]])
 
-(def ^:private default-calver "YYYY.0M.0D")
+(def ^:private calver-map
+  [[#"YYYY" :year]
+   [#"YY"   :year]
+   [#"0Y"   :year]
+   [#"MM"   :month]
+   [#"0M"   :month]
+   [#"DD"   :day]
+   [#"0D"   :day]
+   [#"WW"   :week]
+   [#"0W"   :week]
+   [#"CC"   :counter]])
+
+
+(def ^:private calver-transform-map
+  {:day #(Integer/parseInt %)
+   :month #(Integer/parseInt %)
+   :year #(let [r (Integer/parseInt %)]
+            (if (< r 1000) (+ 2000 r) r))
+   :week #(Integer/parseInt %)
+   :counter #(Integer/parseInt %)})
+
+
+(defn ^:private format-to-pattern [format]
+  (->> calver-map
+       (reduce (fn [a [pattern field]]
+                 (s/replace a pattern (str "(?<" (name field)  ">\\\\d+)")))
+               format)
+       re-pattern))
+
+
+(defn ^:private calver-to-component [calver format]
+  (let [matcher (re-matcher (format-to-pattern format) (or calver ""))]
+    (re-find matcher)
+    (reduce (fn [m [_ field]]
+              (try
+                (let [v (.group matcher (name field))
+                      xfn (get calver-transform-map field)]
+                  (assoc m field (xfn v)))
+                (catch Throwable _
+                  m)))
+            {} calver-map)))
+
+
+(defn ^:private parse-calver [calver format]
+  (let [{:keys [year month day week] :as components} (calver-to-component calver format)
+        c (java.util.Calendar/getInstance)]
+    {:components components
+     :date (cond-> c
+             year
+             (#(do (.set % java.util.Calendar/YEAR year) %))
+             week
+             (#(do (.set % java.util.Calendar/WEEK_OF_YEAR week) %))
+             month
+             (#(do (.set % java.util.Calendar/MONTH (dec month)) %))
+             day
+             (#(do (.set % java.util.Calendar/DAY_OF_MONTH day) %))
+             :always
+             (#(LocalDate/ofInstant (.toInstant %) (.toZoneId (.getTimeZone %)))))}))
+
+
+(def ^:private default-calver "YY.MM.DD")
+
 
 (defn calver
   "Returns a calver (https://calver.org) based on `LocalDate` and
-  following the format specified in `format-str`:
+  following the format specified in `format` below:
 
   - YYYY - Full year - 2006, 2016, 2106
   - YY - Short year - 6, 16, 106
@@ -115,27 +192,47 @@
   - 0W - Zero-padded week - 01, 02, 33, 52
   - DD - Short day - 1, 2 ... 30, 31
   - 0D - Zero-padded day - 01, 02 ... 30, 31
+  - CC - Cumulative counter - counter is a special case. See below.
 
   Uses the ISO-8601 definition, where a week starts on Monday and the
-  first week has a minimum of 4 days.
+  first week of the year has a minimum of 4 days.
 
-  The default format string is `YYYY.0M.0D`.
+  The default format string is `YY.MM.DD`.
 
-  Calling this function without args uses now LocalDate and the
-  default format.
+  Calling this function without args uses the now LocalDate and the
+  default format above.
 
-  Calling this function with one arg the arg can be either a LocalDate
-  object or a string format."
+  Calling this function with one arg will trigger a check whether the
+  arg is a format string (and then uses it as such) or whether the arg is
+  a current calver fed to this calver calculation (see below the special
+  counter case.)
+
+  Lastly, the two-arg signature takes the current calver followed by the
+  format string.
+
+  The `CC` marker on the format is a special case. A common pattern when
+  using calver is to bump a counter when the other temporal fields match.
+  The idea is that if you use `YY.MM.CC` and have a calver `23.2.5` it
+  means it was the 6th (0-based) version on month 2, year 2023. Calling
+  `calver` with a `CC` marker in the format and a current version with a
+  compatible counter will take care of this case."
   ([]
    (calver default-calver))
-  ([one-arg]
-   (if (= LocalDate (type one-arg))
-     (calver one-arg default-calver)
-     (calver (LocalDate/now) one-arg)))
-  ([date format-str]
-   (reduce (fn [a [pattern xfn]]
-             (s/replace a pattern (xfn date)))
-           format-str calver-patterns)))
+
+  ([current-or-format]
+   (if (some (fn [[pattern _]]
+               (not= current-or-format
+                     (s/replace current-or-format pattern "")))
+             calver-patterns)
+     (calver nil current-or-format)
+     (calver current-or-format default-calver)))
+  
+  ([current format]
+   (let [intention-date (*now-provider*)
+         current' (parse-calver current format)]
+     (reduce (fn [a [pattern xfn]]
+               (s/replace a pattern (xfn current' intention-date)))
+             format calver-patterns))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Transformer functions

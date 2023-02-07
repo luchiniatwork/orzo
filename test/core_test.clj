@@ -31,36 +31,57 @@
 
 (deftest calver
   (testing "should accept year formats"
-    (let [date (LocalDate/of 2004 5 6)]
-      (is (= "2004" (core/calver date "YYYY")))
-      (is (= "4" (core/calver date "YY")))
-      (is (= "04" (core/calver date "0Y")))))
+    (binding [core/*now-provider* #(LocalDate/of 2004 5 2)]
+      (is (= "2004" (core/calver "YYYY")))
+      (is (= "4" (core/calver "YY")))
+      (is (= "04" (core/calver "0Y")))))
   
   (testing "should accept month formats"
-    (let [date (LocalDate/of 2033 8 12)]
-      (is (= "8" (core/calver date "MM")))
-      (is (= "08" (core/calver date "0M")))))
+    (binding [core/*now-provider* #(LocalDate/of 2005 8 23)]
+      (is (= "8" (core/calver "MM")))
+      (is (= "08" (core/calver "0M")))))
   
   (testing "should accept day formats"
-    (let [date (LocalDate/of 2530 12 3)]
-      (is (= "3" (core/calver date "DD")))
-      (is (= "03" (core/calver date "0D")))))
+    (binding [core/*now-provider* #(LocalDate/of 2009 9 3)]
+      (is (= "3" (core/calver "DD")))
+      (is (= "03" (core/calver "0D")))))
 
   (testing "should accept week formats"
-    (let [date (LocalDate/of 2012 1 20)]
-      (is (= "3" (core/calver date "WW")))
-      (is (= "03" (core/calver date "0W")))))
+    (binding [core/*now-provider* #(LocalDate/of 2015 1 29)]
+      (is (= "5" (core/calver "WW")))
+      (is (= "05" (core/calver "0W")))))
 
-  (testing "should accept week formats"
-    (are [args calver]
-        (let [[y m d fstr] args]
-          (= calver (core/calver (LocalDate/of y m d) fstr)))
-      [2012 1 25 "YY.MM.DD"] "12.1.25"
-      [2002 12 3 "YY.MM.DD"] "2.12.3"
-      [2021 6 10 "YYYY.WW"] "2021.23"
-      [2045 1 1 "YYYY.0W.0M-MM/DD"] "2045.52.01-1/1"))
+  (testing "default format"
+    (binding [core/*now-provider* #(LocalDate/of 2025 2 3)]
+      (is (= "25.2.3" (core/calver))) ;; default = "YY.MM.DD"
+      (is (= "2025.02.03" (core/calver "YYYY.0M.0D")))))
+  
+  (testing "should accept complex formats"
+    (binding [core/*now-provider* #(LocalDate/of 2025 2 3)]
+      (are [format calver]
+          (= calver (core/calver format))
+        "YY.MM.DD" "25.2.3"
+        "YYYY.MM.DD" "2025.2.3"
+        "YY.0M.0D" "25.02.03"
+        "YY.0M" "25.02"
+        "YY.DD" "25.3"
+        "YY.WW.DD" "25.6.3"
+        "YY.0W.0D" "25.06.03"
+        "YYYY.WW" "2025.6"
+        "YYYY.0W.0M-foobar/DD" "2025.06.02-foobar/3")))
 
-  (testing "should have reasonable defaults"
-    (is (= 10 (count (core/calver))))
-    (is (= 5 (count (core/calver "0Y/0W"))))
-    (is (= (.getYear (LocalDate/now)) (Integer/parseInt (core/calver "YYYY"))))))
+  (testing "should take counter into account"
+    (binding [core/*now-provider* #(LocalDate/of 2014 5 6)]
+      (are [current format target]
+          (= target (core/calver current format))
+        "14.5.123" "YY.MM.CC" "14.5.124"
+        "14.4.123" "YY.MM.CC" "14.5.0"
+        "13.5.178" "YY.MM.CC" "14.5.0"
+
+        "14.6.123" "YY.DD.CC" "14.6.124"
+        "14.3.123" "YY.DD.CC" "14.6.0"
+        "13.6.178" "YY.DD.CC" "14.6.0"
+
+        "14.19.123" "YY.WW.CC" "14.19.124"
+        "14.1.123" "YY.WW.CC" "14.19.0"
+        "13.6.178" "YY.WW.CC" "14.19.0"))))
