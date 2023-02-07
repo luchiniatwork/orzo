@@ -125,7 +125,7 @@
   "Pushes everything to `origin` by default unless another remote has
   been specified."
   ([version]
-   (push-tag version "origin"))
+   (push-all version "origin"))
   ([version remote]
    (let [{:keys [exit err]} (shell/sh "git" "push" "--all" remote)]
      (when (not= 0 exit)
