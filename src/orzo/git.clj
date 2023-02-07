@@ -119,3 +119,15 @@
      (when (not= 0 exit)
        (throw (ex-info "push-tag failed" {:reason err})))
      version)))
+
+
+(defn push-all
+  "Pushes everything to `origin` by default unless another remote has
+  been specified."
+  ([version]
+   (push-tag version "origin"))
+  ([version remote]
+   (let [{:keys [exit err]} (shell/sh "git" "push" "--all" "--tags" remote)]
+     (when (not= 0 exit)
+       (throw (ex-info "push-all failed" {:reason err})))
+     version)))
