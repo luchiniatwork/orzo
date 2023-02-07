@@ -337,6 +337,32 @@
            (string/replace template regex version))
      version)))
 
+(defn overwrite-file
+  "Utilized in cases where there are files that need to be changed with
+  the new version (i.e. README.md, package.json, etc).
+
+  The key parameters are the file path and the regex to be used to
+  find the placement of the version (the implementation uses
+  clojure.string/replace).
+
+  A common regex for a traditional semver-like version would look like
+  `#\"\d+.\d+.\d+\"`. In some cases, you might need to include other
+  markers such as double quotes around the version (with a regex like
+  `#\"\"\d+.\d+.\d+\"\"` for instance.)
+
+  The last optional parameter is a function that is called with the
+  intended version and is expected to return the string to be inserted
+  in the match. This tackles the cases where more characters are
+  needed in the match (for instance, the surrounding double quotes
+  described above.)"
+  ([version path regex]
+   (overwrite-file version path regex identity))
+  ([version path regex treat-fn]
+   (let [content (-> path io/file slurp)]
+     (spit (io/file path)
+           (s/replace content regex (treat-fn version)))
+     version)))
+
 (defn stage
   "Stages the incoming version so that it can be used later."
   [version]
