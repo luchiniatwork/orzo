@@ -360,12 +360,12 @@
   needed in the match (for instance, the surrounding double quotes
   described above.)"
   ([version path regex-or-builder]
-   (overwrite-file version path regex-or-builder (fn [x _] x)))
+   (overwrite-file version path regex-or-builder identity))
   ([version path regex-or-builder treat-fn]
    (let [regex (if (fn? regex-or-builder) (regex-or-builder version) regex-or-builder)
          content (-> path io/file slurp)]
      (spit (io/file path)
-           (s/replace content regex (treat-fn version (re-matches regex content))))
+           (s/replace content regex (treat-fn version)))
      version)))
 
 (defn stage

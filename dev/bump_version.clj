@@ -7,15 +7,11 @@
     (println (-> (orzo/read-file "VERSION.txt")
                  (orzo/calver "YY.MM.CC")
                  (orzo/overwrite-file "README.md" #"\"\d+.\d+.\d+\""
-                                      (fn [x _] (str "\"" x "\"")))
+                                      #(str "\"" % "\""))
                  (orzo/overwrite-file "pom.xml"
                                       #"<artifactId>orzo</artifactId>\n(\s*)<version>.+</version>"
-                                      (fn [x m]
-                                        (str "<artifactId>orzo</artifactId>\n$1"
-                                             "<version>" x "</version>")
-                                        #_(println "aqui" (second m))
-                                        #_(str "<artifactId>orzo</artifactId>\n"
-                                               (second m) "<version>" x "</version>")))
+                                      #(str "<artifactId>orzo</artifactId>\n$1"
+                                            "<version>" % "</version>"))
                  (orzo/save-file "VERSION.txt")
                  (orzo/stage)))
     (System/exit 0)
