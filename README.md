@@ -1,6 +1,6 @@
 # Orzo
 
-[![CircleCI](https://circleci.com/gh/luchiniatwork/orzo.svg?style=shield&circle-token=c0bc81c8cc529f31a28565b9e4a246769ca8d623)](https://circleci.com/gh/luchiniatwork/orzo)
+[![CI](https://github.com/luchiniatwork/orzo/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/luchiniatwork/orzo/actions/workflows/ci.yml)
 [![Clojars Project](https://img.shields.io/clojars/v/luchiniatwork/orzo.svg)](http://clojars.org/luchiniatwork/orzo)
 [![cljdoc badge](https://cljdoc.org/badge/luchiniatwork/orzo)](https://cljdoc.org/d/luchiniatwork/orzo/CURRENT)
 ![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
@@ -201,6 +201,6 @@ an issue.
 
 ## License
 
-Copyright © 2019 Tiago Luchini
+Copyright © 2023 Tiago Luchini
 
 Distributed under the MIT License.
