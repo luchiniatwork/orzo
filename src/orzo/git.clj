@@ -98,7 +98,7 @@
   ([version msg]
    (let [{:keys [exit err]} (shell/sh "git" "commit" "-a" "-c" msg)]
      (when (not= 0 exit)
-       (throw (ex-info "tag failed" {:reason err})))
+       (throw (ex-info "commit failed" {:reason err})))
      version)))
 
 (defn tag
