@@ -53,7 +53,7 @@
      (string/trim out))))
 
 (defn count-since-last-tag
-  "Returns the numeric cound of commits since the last tag. Some
+  "Returns the numeric count of commits since the last tag. Some
   projects use that as a way to version.
 
   It can also receive an optional git match pattern to be passed to
@@ -89,6 +89,17 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Persistence functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn commit
+  "Commits with auto-stage of all changes. Takes optional commit
+  message."
+  ([version]
+   (commit version (str "chore: bump to version " version)))
+  ([version msg]
+   (let [{:keys [exit err]} (shell/sh "git" "commit" "-a" "-c" msg)]
+     (when (not= 0 exit)
+       (throw (ex-info "tag failed" {:reason err})))
+     version)))
 
 (defn tag
   "Creates a local tag with the incoming version."

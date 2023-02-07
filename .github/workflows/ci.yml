@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+
+    strategy:
+      matrix:
+        # Unfortunately rikhuijzer/cache-install@v1.0.9 fails on both, windows and macos
+        os: [ubuntu-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+
+      - name: Cache install Nix packages
+        uses: rikhuijzer/cache-install@v1.0.9
+        with:
+          key: nix-${{ hashFiles('packages.nix') }}
+          nix_file: 'packages.nix'
+
+      - name: Setup cache for Clojure deps
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.m2
+            ~/.clojure
+          key: ${{ runner.os }}-${{ hashFiles('**/deps.edn') }}
+
+      - name: Print versions of key runtimes
+        run: |
+          clojure --version
+          bb --version
+          mvn --version
+
+      - name: Test
+        run: clojure -X:test
+
+      - name: Generate Version
+        run: |
+          clojure -Spom
+          clojure -M:dev -m bump-version
+
+      - name:
+        run: |
+          mvn deploy
+
+      - name: Commit, tag, and push release
+        run: |
+          clojure -M:dev -m commit-tag-and-push-version

@@ -346,21 +346,26 @@
   clojure.string/replace).
 
   A common regex for a traditional semver-like version would look like
-  `#\"\d+.\d+.\d+\"`. In some cases, you might need to include other
+  `#\"\\d+.\\d+.\\d+\"`. In some cases, you might need to include other
   markers such as double quotes around the version (with a regex like
-  `#\"\"\d+.\d+.\d+\"\"` for instance.)
+  `#\"\"\\d+.\\d+.\\d+\"\"` for instance.)
+
+  For more complex scenarios, you can provide a builder function to
+  the regex argument. It is called with the version and expects a
+  regex in return.
 
   The last optional parameter is a function that is called with the
   intended version and is expected to return the string to be inserted
   in the match. This tackles the cases where more characters are
   needed in the match (for instance, the surrounding double quotes
   described above.)"
-  ([version path regex]
-   (overwrite-file version path regex identity))
-  ([version path regex treat-fn]
-   (let [content (-> path io/file slurp)]
+  ([version path regex-or-builder]
+   (overwrite-file version path regex-or-builder (fn [x _] x)))
+  ([version path regex-or-builder treat-fn]
+   (let [regex (if (fn? regex-or-builder) (regex-or-builder version) regex-or-builder)
+         content (-> path io/file slurp)]
      (spit (io/file path)
-           (s/replace content regex (treat-fn version)))
+           (s/replace content regex (treat-fn version (re-matches regex content))))
      version)))
 
 (defn stage
