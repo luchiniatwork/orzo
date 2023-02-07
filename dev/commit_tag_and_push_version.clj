@@ -8,7 +8,8 @@
                  (orzo/prepend "v")
                  (git/commit)
                  (git/tag)
-                 (git/push-all)))
+                 (git/push-all)
+                 (git/push-tag)))
     (System/exit 0)
     (catch Exception e
       (println e)

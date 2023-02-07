@@ -127,7 +127,7 @@
   ([version]
    (push-tag version "origin"))
   ([version remote]
-   (let [{:keys [exit err]} (shell/sh "git" "push" "--all" "--tags" remote)]
+   (let [{:keys [exit err]} (shell/sh "git" "push" "--all" remote)]
      (when (not= 0 exit)
        (throw (ex-info "push-all failed" {:reason err})))
      version)))
